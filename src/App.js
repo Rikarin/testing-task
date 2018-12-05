@@ -6,15 +6,12 @@ import * as moment from 'moment';
 import { fetchTwitterData } from './reducers';
 
 class App extends Component {
-  _url = 'https://storage.googleapis.com/goostav-static-files/rh-easy-data-source.json';
-  _data = [];
-
   constructor(props, context) {
     super(props, context);
 
     this.state = {
-      sortDate: false,
-      sortLikes: false
+      sortBy: '',
+      sortDirection: false
     };
 
     this.props.fetchTwitterData();
@@ -25,31 +22,57 @@ class App extends Component {
       ...this.state
     };
 
-    newState[column] = !this.state[column];
+    if (this.state.sortBy === column) {
+      newState.sortDirection = !newState.sortDirection;
+    } else {
+      newState.sortBy = column;
+      newState.sortDirection = false;
+    }
+
     this.setState(newState);
   }
 
-  sortByDates = (a, b) => {
+  sortByDate = (a, b) => {
     var keyA = moment(a.created_at, 'ddd MMM D HH:mm:ss ZZ YYYY');
     var keyB = moment(b.created_at, 'ddd MMM D HH:mm:ss ZZ YYYY');
 
-    return keyA.diff(keyB) * (this.state.sortDate ? 1 : -1);
+    return keyA.diff(keyB) * (this.state.sortDirection ? 1 : -1);
   }
 
   sortByLikes = (a, b) => {
-    return (a - b) * (this.state.sortLikes ? 1 : -1);
+    return (a.favorite_count - b.favorite_count) * (this.state.sortDirection ? 1 : -1);
+  }
+
+  getSortIcon(column) {
+    if (this.state.sortBy === column) {
+      return this.state.sortDirection ? '^' : 'V';
+    }
+    
+    return '';
+  }
+
+  getSortedData() {
+    var data = this.props.twitterData;
+
+    if (this.state.sortBy === 'likes') {
+      data = data.sort(this.sortByLikes);
+    } else if (this.state.sortBy === 'date') {
+      data = data.sort(this.sortByDate);
+    }
+
+    return data;
   }
 
   render() {
-    var data = this.props.twitterData.sort(this.sortByDates);
+    const data = this.getSortedData();
 
     return (
       <Table striped bordered condensed hover>
         <thead>
           <tr>
-            <th onClick={() => this.clickSort('sortDate')}>Creation Date { this.state.sortDate ? '^' : 'V' }</th>
+            <th onClick={() => this.clickSort('date')}>Creation Date { this.getSortIcon('date') }</th>
             <th>Text</th>
-            <th onClick={() => this.clickSort('sortLikes')}>Likes { this.state.sortLikes ? '^' : 'V' }</th>
+            <th onClick={() => this.clickSort('likes')}>Likes { this.getSortIcon('likes') }</th>
             <th>Mentions</th>
             <th>Hashtags</th>
           </tr>
