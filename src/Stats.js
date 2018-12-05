@@ -1,25 +1,15 @@
 import React, { Component } from 'react';
+import { connect } from 'react-redux';
 import { Modal, Table, Button } from 'react-bootstrap';
 import './App.css';
 
 class Stats extends Component {
-  _url = 'https://storage.googleapis.com/goostav-static-files/rh-easy-data-source.json';
-  _data = [];
-
   constructor(props, context) {
     super(props, context);
 
     this.state = {
       show: true
     };
-  }
-
-  componentDidMount() {
-    fetch(this._url).then(async x => {
-      const data = await x.json();
-      this._data = data.slice(-50);
-      this.forceUpdate();
-    });
   }
 
   handleClose = () => {
@@ -29,15 +19,19 @@ class Stats extends Component {
   }
 
   get allLikes() {
-    return this._data.reduce((a, b) => a + b.favorite_count, 0);
+    return this.props.twitterData.reduce((a, b) => a + b.favorite_count, 0);
   }
 
   get averageLikes() {
-    return this.allLikes / this._data.length;
+    if (!this.props.twitterData.length) {
+      return 0;
+    }
+
+    return this.allLikes / this.props.twitterData.length;
   }
 
   get allMentions() {
-    const mentions = this._data.map(x => (x.text.match(/(^|\s)([@][\w_-]+)/g) || []));
+    const mentions = this.props.twitterData.map(x => (x.text.match(/(^|\s)([@][\w_-]+)/g) || []));
     var grouped = {};
 
     mentions.forEach(tweet => {
@@ -106,4 +100,8 @@ class Stats extends Component {
   }
 }
 
-export default Stats;
+const mapStateToProps = state => {
+  return { twitterData: state.twitterData };
+};
+
+export default connect(mapStateToProps)(Stats);

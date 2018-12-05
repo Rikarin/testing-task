@@ -4,13 +4,18 @@ import './index.css';
 import App from './App';
 import Stats from './Stats';
 import * as serviceWorker from './serviceWorker';
+import { Provider } from 'react-redux';
+import rootReducer from './reducers';
+import { createStore } from 'redux';
+
+const store = createStore(rootReducer);
 
 ReactDOM.render(
   (
-    <div>
+    <Provider store={store}>
       <App />
       <Stats />
-    </div>
+    </Provider>
   )
 , document.getElementById('root'));
 

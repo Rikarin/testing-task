@@ -1,7 +1,9 @@
 import React, { Component } from 'react';
 import { Table } from 'react-bootstrap';
+import { connect } from 'react-redux';
 import './App.css';
 import * as moment from 'moment';
+import { fetchTwitterData } from './reducers';
 
 class App extends Component {
   _url = 'https://storage.googleapis.com/goostav-static-files/rh-easy-data-source.json';
@@ -14,16 +16,8 @@ class App extends Component {
       sortDate: false,
       sortLikes: false
     };
-  }
 
-  componentDidMount() {
-    fetch(this._url).then(async x => {
-      const data = await x.json();
-      // console.log(data.slice(-50));
-
-      this._data = data.slice(-50);
-      this.forceUpdate();
-    });
+    this.props.fetchTwitterData();
   }
 
   clickSort = (column) => {
@@ -47,7 +41,7 @@ class App extends Component {
   }
 
   render() {
-    var data = this._data.sort(this.sortByDates);
+    var data = this.props.twitterData.sort(this.sortByDates);
 
     return (
       <Table striped bordered condensed hover>
@@ -61,7 +55,7 @@ class App extends Component {
           </tr>
         </thead>
         <tbody>
-          { data.map((x, i) => {
+          {data.map((x, i) => {
             return (
               <tr key={i}>
                 <td>{ moment(x.created_at, 'ddd MMM D HH:mm:ss ZZ YYYY').format('MM/DD/YYYY HH:ss') }</td>
@@ -71,11 +65,21 @@ class App extends Component {
                 <td>{ (x.text.match(/(^|\s)([#][\w_-]+)/g) || []).length }</td>
               </tr>
             );
-          }) }
+          })}
         </tbody>
       </Table>
     );
   }
 }
 
-export default App;
+const mapStateToProps = state => {
+  return { twitterData: state.twitterData };
+};
+
+const mapDispatchToProps = dispatch => {
+  return {
+    fetchTwitterData: () => fetchTwitterData(dispatch)
+  };
+};
+
+export default connect(mapStateToProps, mapDispatchToProps)(App);
