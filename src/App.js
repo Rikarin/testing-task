@@ -1,9 +1,10 @@
 import React, { Component } from 'react';
-import { Table } from 'react-bootstrap';
+import { Table, OverlayTrigger } from 'react-bootstrap';
 import { connect } from 'react-redux';
 import './App.css';
 import * as moment from 'moment';
 import { fetchTwitterData } from './reducers';
+import Filter from './Filter';
 
 class App extends Component {
   constructor(props, context) {
@@ -47,7 +48,7 @@ class App extends Component {
     if (this.state.sortBy === column) {
       return this.state.sortDirection ? '^' : 'V';
     }
-    
+
     return '';
   }
 
@@ -63,6 +64,10 @@ class App extends Component {
     return data;
   }
 
+  onFilter = (data) => {
+
+  }
+
   render() {
     const data = this.getSortedData();
 
@@ -70,9 +75,14 @@ class App extends Component {
       <Table striped bordered condensed hover>
         <thead>
           <tr>
-            <th onClick={() => this.clickSort('date')}>Creation Date { this.getSortIcon('date') }</th>
-            <th>Text</th>
-            <th onClick={() => this.clickSort('likes')}>Likes { this.getSortIcon('likes') }</th>
+            <th onClick={() => this.clickSort('date')}>Creation Date {this.getSortIcon('date')}</th>
+            <th>
+              <OverlayTrigger trigger="click" placement="bottom" overlay={Filter(1)}>
+                <strong>F </strong>
+              </OverlayTrigger>
+              Text
+            </th>
+            <th onClick={() => this.clickSort('likes')}>Likes {this.getSortIcon('likes')}</th>
             <th>Mentions</th>
             <th>Hashtags</th>
           </tr>
@@ -81,11 +91,11 @@ class App extends Component {
           {data.map((x, i) => {
             return (
               <tr key={i}>
-                <td>{ moment(x.created_at, 'ddd MMM D HH:mm:ss ZZ YYYY').format('MM/DD/YYYY HH:ss') }</td>
-                <td>{ x.text }</td>
-                <td>{ x.favorite_count }</td>
-                <td>{ (x.text.match(/(^|\s)([@][\w_-]+)/g) || []).length }</td>
-                <td>{ (x.text.match(/(^|\s)([#][\w_-]+)/g) || []).length }</td>
+                <td>{moment(x.created_at, 'ddd MMM D HH:mm:ss ZZ YYYY').format('MM/DD/YYYY HH:ss')}</td>
+                <td>{x.text}</td>
+                <td>{x.favorite_count}</td>
+                <td>{(x.text.match(/(^|\s)([@][\w_-]+)/g) || []).length}</td>
+                <td>{(x.text.match(/(^|\s)([#][\w_-]+)/g) || []).length}</td>
               </tr>
             );
           })}
