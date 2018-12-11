@@ -4,7 +4,7 @@ import { connect } from 'react-redux';
 import './App.css';
 import * as moment from 'moment';
 import { fetchTwitterData } from './reducers';
-import Filter from './Filter';
+import Filter, { filterData } from './Filter';
 
 class App extends Component {
   constructor(props, context) {
@@ -12,7 +12,8 @@ class App extends Component {
 
     this.state = {
       sortBy: '',
-      sortDirection: false
+      sortDirection: false,
+      filters: []
     };
 
     this.props.fetchTwitterData();
@@ -34,14 +35,11 @@ class App extends Component {
   }
 
   sortByDate = (a, b) => {
-    var keyA = moment(a.created_at, 'ddd MMM D HH:mm:ss ZZ YYYY');
-    var keyB = moment(b.created_at, 'ddd MMM D HH:mm:ss ZZ YYYY');
-
-    return keyA.diff(keyB) * (this.state.sortDirection ? 1 : -1);
+    return moment(a.created_at).diff(moment(b.created_at)) * (this.state.sortDirection ? 1 : -1);
   }
 
   sortByLikes = (a, b) => {
-    return (a.favorite_count - b.favorite_count) * (this.state.sortDirection ? 1 : -1);
+    return (a.likes - b.likes) * (this.state.sortDirection ? 1 : -1);
   }
 
   getSortIcon(column) {
@@ -52,38 +50,71 @@ class App extends Component {
     return '';
   }
 
-  getSortedData() {
-    var data = this.props.twitterData;
-
+  sortData(data) {
     if (this.state.sortBy === 'likes') {
       data = data.sort(this.sortByLikes);
-    } else if (this.state.sortBy === 'date') {
+    } else if (this.state.sortBy === 'created_at') {
       data = data.sort(this.sortByDate);
     }
 
     return data;
   }
 
-  onFilter = (data) => {
+  setFilter = (column, cond, value) => {
+    var filters = this.state.filters;
 
+    if (cond === null) {
+      delete filters[column];
+    } else {
+      filters[column] = {
+        cond,
+        value
+      };
+    }
+
+    this.setState({
+      ...this.state,
+      filters: filters
+    });
   }
 
   render() {
-    const data = this.getSortedData();
+    var data = this.props.twitterData.map(x => {
+      return {
+        created_at: moment(x.created_at, 'ddd MMM D HH:mm:ss ZZ YYYY').format('MM/DD/YYYY HH:ss'),
+        text: x.text,
+        likes: x.favorite_count,
+        mentions: (x.text.match(/(^|\s)([@][\w_-]+)/g) || []).length,
+        hashtags: (x.text.match(/(^|\s)([#][\w_-]+)/g) || []).length,
+      };
+    });
+
+    data = filterData(this.sortData(data), this.state.filters);
 
     return (
       <Table striped bordered condensed hover>
         <thead>
           <tr>
-            <th onClick={() => this.clickSort('date')}>Creation Date {this.getSortIcon('date')}</th>
+            <th onClick={() => this.clickSort('created_at')}>S {this.getSortIcon('created_at')} Creation Date</th>
             <th>
-              <OverlayTrigger trigger="click" placement="bottom" overlay={Filter(1)}>
+              <OverlayTrigger trigger="click" placement="bottom" overlay={Filter(1, (cond, value) => this.setFilter('text', cond, value))}>
                 <strong>F </strong>
               </OverlayTrigger>
               Text
             </th>
-            <th onClick={() => this.clickSort('likes')}>Likes {this.getSortIcon('likes')}</th>
-            <th>Mentions</th>
+            <th>
+              <OverlayTrigger trigger="click" placement="bottom" overlay={Filter(2, (cond, value) => this.setFilter('likes', cond, value))}>
+                <strong>F </strong>
+              </OverlayTrigger>
+              <div onClick={() => this.clickSort('likes')}>S {this.getSortIcon('likes')}</div>
+              Likes
+            </th>
+            <th>
+              <OverlayTrigger trigger="click" placement="bottom" overlay={Filter(2, (cond, value) => this.setFilter('likes', cond, value))}>
+                <strong>F </strong>
+              </OverlayTrigger>
+              Mentions
+            </th>
             <th>Hashtags</th>
           </tr>
         </thead>
@@ -91,11 +122,11 @@ class App extends Component {
           {data.map((x, i) => {
             return (
               <tr key={i}>
-                <td>{moment(x.created_at, 'ddd MMM D HH:mm:ss ZZ YYYY').format('MM/DD/YYYY HH:ss')}</td>
+                <td>{x.created_at}</td>
                 <td>{x.text}</td>
-                <td>{x.favorite_count}</td>
-                <td>{(x.text.match(/(^|\s)([@][\w_-]+)/g) || []).length}</td>
-                <td>{(x.text.match(/(^|\s)([#][\w_-]+)/g) || []).length}</td>
+                <td>{x.likes}</td>
+                <td>{x.mentions}</td>
+                <td>{x.hashtags}</td>
               </tr>
             );
           })}

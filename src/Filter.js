@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { Component } from 'react';
 import { Popover, Button, FormGroup, ControlLabel, FormControl } from 'react-bootstrap';
 import './App.css';
 
@@ -53,6 +53,12 @@ const _conditions = [
     hasValue: true,
     type: 1
   },
+  {
+    id: 'HAS_LENGTH',
+    name: 'Has Length',
+    hasValue: true,
+    type: 1
+  },
 
   {
     id: 'IS_GREATHER',
@@ -90,42 +96,146 @@ function conditions(type) {
   ];
 };
 
-function onFilter(option, column, data) {
-  if (option === 'IS_EMPTY') {
-    return data.filter(x => x[column] == null); // TODO: check condition
-  } else if (option === 'IS_NOT_EMPTY') {
-    return data.filter(x => x[column] != null);
-  }
+export function filterData(data, filters) {
+  Object.keys(filters).forEach(filter => {
+    const value = filters[filter].value;
 
-  // TODO: finish this
+    switch (filters[filter].cond) {
+      case 'IS_EMPTY':
+        data = data.filter(x => x[filter] == null); // TODO: check condition
+        break;
+
+      case 'IS_NOT_EMPTY':
+        data = data.filter(x => x[filter] != null);
+        break;
+
+      case 'IS_EQUAL':
+        data = data.filter(x => x[filter] === value);
+        break;
+
+      case 'IS_NOT_EQUAL':
+        data = data.filter(x => x[filter] !== value);
+        break;
+
+      case 'BEGINS_WITH':
+        data = data.filter(x => x[filter].startsWith(value));
+        break;
+
+      case 'ENDS_WITH':
+        data = data.filter(x => x[filter].endsWith(value));
+        break;
+
+      case 'CONTAINS':
+        data = data.filter(x => x[filter].includes(value));
+        break;
+
+      case 'HAS_LEGTH':
+        data = data.filter(x => x[filter].length === value);
+        break;
+
+      case 'DOES_NOT_CONTAINS':
+        data = data.filter(x => !x[filter].includes(value));
+        break;
+
+      case 'IS_GREATHER':
+        data = data.filter(x => x[filter] > value);
+        break;
+
+      case 'IS_GREATHER_OR_EQUAL':
+        data = data.filter(x => x[filter] >= value);
+        break;
+
+      case 'IS_LESS':
+        data = data.filter(x => x[filter] < value);
+        break;
+
+      case 'IS_LESS_OR_EQUAL':
+        data = data.filter(x => x[filter] <= value);
+        break;
+
+      default:
+    }
+  });
+
+  return data;
 }
 
-export const Filter = (type, column, data, onSubmit) => {
+export const Filter = (type, onSubmit) => {
   return (
     <Popover id="filter" title="Filter">
-      <FormGroup controlId="formControlsSelect">
-        <ControlLabel>Condition</ControlLabel>
-        {type !== 'string' &&
-          <FormControl componentClass="select" placeholder="select">
-            {conditions(type).map(x =>
-              <option key={x.id} value={x.id}>{x.name}</option>
-            )}
-          </FormControl>
-        }
-      </FormGroup>
-
-      <FormGroup controlId="formBasicText">
-        <ControlLabel>Value</ControlLabel>
-        <FormControl
-          type="text"
-          // value={this.state.value}
-          placeholder="Value"
-          // onChange={this.handleChange}
-        />
-      </FormGroup>
-
-      <Button type="submit" onClick={() => onSubmit(onFilter('IS_EMPTY', column, data))}>Submit</Button>
+      <FilterInner type={type} onSubmit={onSubmit}></FilterInner>
     </Popover>);
 };
 
 export default Filter;
+
+
+
+class FilterInner extends Component {
+  constructor(props, context) {
+    super(props, context);
+
+    this.state = {
+      value: '',
+      condition: 'IS_EMPTY'
+    };
+  }
+
+  handleChangeCondition = (e) => {
+    this.setState({
+      ...this.state,
+      condition: e.target.value
+    });
+  }
+
+  handleChangeValue = (e) => {
+    this.setState({
+      ...this.state,
+      value: e.target.value
+    });
+  }
+
+  reset = () => {
+    this.setState({
+      value: '',
+      condition: 'IS_EMPTY'
+    });
+
+    this.props.onSubmit(null, null);
+  }
+
+  render() {
+    return (
+      <div>
+        <FormGroup controlId="formControlsSelect">
+          <ControlLabel>Condition</ControlLabel>
+          {this.props.type !== 'string' &&
+            <FormControl
+              componentClass="select"
+              placeholder="select"
+              value={this.state.condition}
+              onChange={this.handleChangeCondition}
+            >
+              {conditions(this.props.type).map(x =>
+                <option key={x.id} value={x.id}>{x.name}</option>
+              )}
+            </FormControl>
+          }
+        </FormGroup>
+
+        <FormGroup controlId="formBasicText">
+          <ControlLabel>Value</ControlLabel>
+          <FormControl
+            type="text"
+            value={this.state.value}
+            placeholder="Value"
+            onChange={this.handleChangeValue}
+          />
+        </FormGroup>
+
+        <Button type="submit" onClick={() => this.props.onSubmit(this.state.condition, this.state.value)}>Submit</Button>
+        <Button type="submit" onClick={this.reset}>Reset</Button>
+      </div>
+    );
+  }
+}
